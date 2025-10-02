@@ -1,0 +1,54 @@
+### Project Master Prompt: Conductor V2 (Amended)
+
+**Objective:**
+
+Create a sophisticated yet minimalist tool named "Conductor" designed for a solo software developer. Its primary purpose
+is to act as an "ingestion and visualization engine" for the sequence of prompts used to build or refactor a software
+project with an AI coding assistant. It solves the problem of AI context loss during complex tasks by creating a persistent,
+replayable "build script" of prompts.
+
+**The Developer Workflow:**
+
+1.  The developer and the AI assistant collaborate to create and polish a high-quality prompt for a specific task.
+2.  Once the prompt is finalized, the developer gives a final command (e.g., "Do it").
+3.  The AI assistant then performs two actions:
+    a. Implements the requested code change.
+    b. Embeds the final, polished prompt into the relevant source code file, wrapped in a special multi-line comment block: `/* @@CONDUCTOR_PROMPT ... @@END_CONDUCTOR_PROMPT */`.
+4.  At any point, the developer can activate the Conductor engine from within their running application.
+
+**The Conductor Engine's Responsibilities:**
+
+1.  **Scan:** On activation, Conductor recursively scans a user-configured "IDE Project Path" for any files containing the `@@CONDUCTOR_PROMPT` block.
+2.  **Ingest:** For each block found, it extracts the full prompt text and the file path it was found in.
+3.  **Clean:** After successful extraction, Conductor **must remove the entire `/* ... */` comment block** from the source file, leaving the production code clean.
+4.  **Persist:** The ingested prompt, along with its source file path and a new timestamp, is saved to Conductor's external data model. This data model is a single, portable file (e.g., a serialized object file or a structured JSON).
+
+**Initial Configuration:**
+
+The first time the Conductor engine is activated within a project, or if its configuration is missing, it must present a setup dialog to the user. This dialog will configure and persist essential paths, including:
+*   The root path of the IDE project to be scanned.
+*   The desired location for the output `conductor_log.html` file.
+*   The path for any versioning or backup files Conductor may create.
+
+**The Data Model Requirements:**
+
+The external data model must maintain two distinct, synchronized views of the project's history:
+
+1.  **Hierarchical View:** A tree structure that mirrors the project's file system. Each prompt is associated with a node in this tree (e.g., a `UserService.java` prompt is attached to a `UserService` node under a `services` folder node). This view must be able to represent "ghost" nodes for files that were created and later deleted.
+2.  **Chronological View:** A simple, flat list of all prompts ever ingested, sorted by their timestamp.
+
+**The User Interface: A Self-Contained HTML/JS Visualization**
+
+Conductor's primary output for the user is a single, self-contained `conductor_log.html` file.
+
+*   This file will be generated or updated by the Conductor engine.
+*   It will contain all the necessary HTML, CSS, and JavaScript to render an interactive view of the data model.
+*   The user will be able to toggle between the hierarchical project tree view and the flat chronological timeline.
+*   Clicking on a node in the tree will display the prompt(s) associated with that artifact.
+*   The visualization must clearly distinguish and display "ghost" nodes for deleted items.
+
+**Rules of Engagement for the AI Assistant (You):**
+
+Your role is to act as a world-class software engineering partner in building this Conductor tool. We will build it iteratively, following the principles laid out in this very prompt.
+
+**Crucially, you will not generate any implementation code until we have fully discussed and refined a specific feature and I give the explicit command to proceed.**
