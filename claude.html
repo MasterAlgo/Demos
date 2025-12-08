@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trainer UI</title>
+  <style>
+    /* theme.css */
+    :root {
+      --color-primary: #3498db;
+      --color-primary-hover: #2980b9;
+      --color-danger: #e74c3c;
+      --color-success: #2ecc71;
+      --color-warning: #f39c12;
+      --color-dark: #2c3e50;
+      --color-gray: #95a5a6;
+      --color-light: #f4f6f9;
+      --color-border: #ddd;
+      --color-text: #333;
+      --color-text-light: #555;
+      --radius: 12px;
+      --radius-sm: 6px;
+      --radius-lg: 16px;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      --shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.15);
+      --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      --font-mono: 'Courier New', monospace;
+    }
+
+    /* base.css */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: var(--font-main);
+      background-color: var(--color-light);
+      margin: 0;
+      padding: 20px;
+      color: var(--color-text);
+      line-height: 1.6;
+    }
+    h2 {
+      margin: 0 0 12px 0;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--color-border);
+      color: var(--color-dark);
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+
+    /* layout.css */
+    .container-wide {
+      width: 1200px;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      padding: 20px;
+    }
+    .panel {
+      background-color: white;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      width: 100%;
+    }
+
+    /* panels.css */
+    .panel.trainer {
+      border-top: 4px solid var(--color-primary);
+    }
+    .panel.console {
+      border-top: 4px solid #673ab7;
+    }
+    .panel.telemetry {
+      border-top: 4px solid var(--color-danger);
+    }
+    .panel.generator {
+      border-top: 4px solid var(--color-success);
+    }
+    .panel.next-move {
+      border-top: 4px solid #9b59b6;
+    }
+
+    /* dnd.css */
+    .dnd-row {
+      display: flex;
+      gap: 20px;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .dnd-zone {
+      flex: 1;
+      min-height: 120px;
+      border: 2px dashed var(--color-primary);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      color: var(--color-text-light);
+      background-color: #f8fafd;
+      transition: all 0.3s;
+    }
+    .dnd-zone:hover {
+      border-color: var(--color-primary-hover);
+      background-color: #edf5ff;
+    }
+    .dnd-zone.active {
+      border-style: solid;
+      background-color: #e3f2fd;
+      border-color: var(--color-primary);
+    }
+    .dnd-zone[data-type="unlearning"] {
+      border-color: var(--color-danger);
+    }
+    .dnd-zone[data-type="unlearning"].active {
+      border-color: #c2185b;
+      background-color: #fce4ec;
+    }
+    .dnd-zone h3 {
+      margin: 0 0 8px 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    /* style.css */
+    body.drag-over-body {
+      background-color: #f0f8ff;
+      outline: 4px dashed #00796b;
+      transition: all 0.2s ease;
+    }
+    .dnd-area {
+      width: 100%;
+      padding: 30px;
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+      background-color: #fafafa;
+      transition: all 0.2s ease;
+    }
+    .dnd-area.active {
+      background-color: #e3f2fd;
+      border-color: #00796b;
+      color: #00796b;
+      transform: scale(1.02);
+      box-shadow: 0 2px 6px rgba(0, 121, 107, 0.2);
+    }
+
+    /* controls.css */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-dark);
+    }
+    .field input {
+      padding: 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      font-family: var(--font-main);
+    }
+    .field input:focus {
+      border-color: var(--color-primary);
+      outline: none;
+    }
+    .status-field {
+      grid-column: span 3;
+    }
+    .btn {
+      padding: 10px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      background-color: var(--color-primary);
+      color: white;
+      transition: background-color 0.2s;
+    }
+    .btn:hover {
+      background-color: var(--color-primary-hover);
+    }
+    .status-bar {
+      height: 36px;
+      padding: 0 12px;
+      background-color: #f0f0f0;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      color: var(--color-text-light);
+      display: flex;
+      align-items: center;
+      background-image: linear-gradient(to right, #f8f8f8, #efefef);
+    }
+    .status-bar::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background-color: #ccc;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .status-bar.status-training {
+      color: #007a3d;
+    }
+    .status-bar.status-training::before {
+      background-color: var(--color-success);
+      box-shadow: 0 0 6px rgba(76, 175, 80, 0.6);
+    }
+    .status-bar.status-stopped {
+      color: #663d00;
+    }
+    .status-bar.status-stopped::before {
+      background-color: var(--color-warning);
+    }
+
+    /* console.css */
+    .console-output {
+      background-color: #f0f0f0;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      min-height: 60px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--color-text);
+      margin-top: 10px;
+    }
+    .console-output p {
+      margin: 4px 0;
+    }
+    .console-output .error { color: #c00; }
+    .console-output .warn { color: #cc7a00; }
+    .console-output .info { color: #007acc; }
+    .console-output .log { color: #444; }
+
+    /* telemetry-panel.css */
+    .telemetry-panel {
+      font-family: var(--font-sans), sans-serif;
+      color: var(--color-dark);
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .telemetry-top-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .telemetry-summary {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      padding: 8px 12px;
+      background-color: #f1f3f5;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    .telemetry-progress-row {
+      display: flex;
+      gap: 20px;
+      width: 100%;
+    }
+    .progress-item {
+      flex: 1;
+      min-width: 0;
+    }
+    .progress-item label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-dark);
+      margin-bottom: 4px;
+      text-align: left;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      background-color: #e0e0e0;
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-fill {
+      height: 100%;
+      background-color: var(--color-primary, #007bff);
+      transition: width 0.4s ease;
+      border-radius: 6px;
+      width: 0%;
+    }
+    .progress-label {
+      font-size: 0.85rem;
+      color: var(--color-gray, #666);
+      text-align: right;
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* generator.css */
+    .gen-layout {
+      display: flex;
+      gap: 20px;
+      width: 100%;
+      height: 400px;
+    }
+    .gen-panel {
+      flex: 1;
+      background-color: var(--color-light);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: stretch;
+    }
+    .gen-panel h3 {
+      margin: 0 0 12px 0;
+      color: var(--color-text);
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-wide">
+    <div class="panel trainer" id="trainer-panel">
+      <h2>🎯 Trainer</h2>
+      <div id="dnd-container"></div>
+      <div id="controls-container"></div>
+    </div>
+
+    <div class="panel console" id="console-panel">
+      <h2>📜 Console</h2>
+      <div id="console-output" class="console-output">
+        <p><small>Console initialized...</small></p>
+      </div>
+    </div>
+
+    <div class="panel telemetry" id="telemetry-panel">
+      <h2>📊 Telemetry</h2>
+      <div id="telemetry-content"></div>
+    </div>
+
+    <div class="panel generator" id="generator-panel">
+      <h2>⚡ Generator</h2>
+      <div id="generator-content">
+        <p><small>Input prompts, generation controls, and output will appear here.</small></p>
+      </div>
+    </div>
+
+    <div class="panel next-move" id="next-move-panel">
+      <h2>🔮 What's Next</h2>
+      <div id="next-move-content">
+        <p><small>Suggestions, predictions, and recommended actions will appear here.</small></p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // ==================== Globals.js ====================
+    const TrainingStatus = {
+      TRAINING: 'training',
+      PAUSED: 'paused',
+      STOPPED: 'stopped',
+      INPUT_DEFINED: 'input defined'
+    };
+
+    let status = TrainingStatus.STOPPED;
+    let inputDefined = false;
+    let droppedFiles = [];
+    let tokenLength = 2;
+    let minTokenLength = 3;
+    let maxTokenLength = 12;
+    let smallL = 1000;
+    let bigL = 1_000_000;
+
+    const globalData = {
+      smallSortedArrays: [],
+      bigSortedArrays: [],
+      telemetry: {
+        tokenCount: 0,
+        uniqueTokens: 0,
+        trainingProgress: 0,
+        tempMemoryUsed: 0,
+        tempMemoryTotal: 1000,
+        bigMemoryUsed: 0,
+        bigMemoryTotal: 1000000,
+        ramUsed: 0,
+        ramTotal: 2144
+      }
+    };
+
+    function setStatus(newStatus) {
+      if (Object.values(TrainingStatus).includes(newStatus)) {
+        status = newStatus;
+      } else {
+        throw new Error('Invalid training status: ' + newStatus);
+      }
+    }
+    function getStatus() { return status; }
+    function setInputDefined(val) { inputDefined = !!val; }
+    function getInputDefined() { return inputDefined; }
+    function setDroppedFiles(files) { droppedFiles = files; }
+    function getDroppedFiles() { return droppedFiles; }
+    function setTokenLength(val) {
+      const v = Math.min(12, Math.max(1, parseInt(val, 10) || 1));
+      tokenLength = v;
+    }
+    function getTokenLength() { return tokenLength; }
+    function setMinTokenLength(val) {
+      const v = Math.max(1, parseInt(val, 10) || 1);
+      minTokenLength = v;
+    }
+    function getMinTokenLength() { return minTokenLength; }
+    function setMaxTokenLength(val) {
+      const v = Math.max(1, parseInt(val, 10) || 1);
+      maxTokenLength = v;
+    }
+    function getMaxTokenLength() { return maxTokenLength; }
+    function setSmallL(val) {
+      const v = Math.max(100, parseInt(val, 10) || 100);
+      smallL = v;
+    }
+    function getSmallL() { return smallL; }
+    function setBigL(val) {
+      const v = Math.max(1000, parseInt(val, 10) || 1000);
+      bigL = v;
+    }
+    function getBigL() { return bigL; }
+
+    window.GLOBAL_DATA_DEBUG = globalData;
+
+    // ==================== Model.js ====================
+    let tokenDict = new Map();
+    let reverseTokenDict = new Map();
+
+    function setTokenDict(dict) { tokenDict = dict; }
+    function getTokenDict() { return tokenDict; }
+    function setReverseTokenDict(dict) { reverseTokenDict = dict; }
+    function getReverseTokenDict() { return reverseTokenDict; }
+
+    // ==================== SortedArray.js ====================
+    class SortedArray {
+      constructor(L, N, K) {
+        this.L = L;
+        this.N = N;
+        this.K = K;
+        this.stride = N + K;
+        this.capacity = L * this.stride;
+        this.data = new Int32Array(this.capacity);
+        this.size = 0;
+        this.overfill = false;
+      }
+
+      clear() {
+        this.size = 0;
+        this.overfill = false;
+      }
+
+      isFull() {
+        return this.size >= this.L;
+      }
+
+      getKey(index) {
+        const start = index * this.stride;
+        return this.data.subarray(start, start + this.N);
+      }
+
+      getValue(index) {
+        const start = index * this.stride + this.N;
+        return this.data.subarray(start, start + this.K);
+      }
+
+      getValueRef(index) {
+        const start = index * this.stride + this.N;
+        return this.data.subarray(start, start + this.K);
+      }
+
+      incrementFrequency(index, amount = 1) {
+        if (index >= 0 && index < this.size) {
+          const valueStart = index * this.stride + this.N;
+          this.data[valueStart] += amount;
+          return true;
+        }
+        return false;
+      }
+
+      decrementFrequency(index, amount = 1) {
+        if (index >= 0 && index < this.size) {
+          const valueStart = index * this.stride + this.N;
+          this.data[valueStart] = Math.max(0, this.data[valueStart] - amount);
+          return true;
+        }
+        return false;
+      }
+
+      insert(keyArray, valueArray) {
+        if (this.isFull()) {
+          this.overfill = true;
+          return false;
+        }
+
+        let left = 0, right = this.size;
+        while (left < right) {
+          const mid = (left + right) >> 1;
+          const cmp = this._compareKeyAt(keyArray, mid);
+          if (cmp < 0) right = mid;
+          else left = mid + 1;
+        }
+        const insertPos = left;
+
+        for (let i = this.size; i > insertPos; i--) {
+          const src = (i - 1) * this.stride;
+          const dst = i * this.stride;
+          for (let j = 0; j < this.stride; j++) {
+            this.data[dst + j] = this.data[src + j];
+          }
+        }
+
+        const base = insertPos * this.stride;
+        for (let i = 0; i < this.N; i++) {
+          this.data[base + i] = keyArray[i];
+        }
+        for (let i = 0; i < this.K; i++) {
+          this.data[base + this.N + i] = valueArray[i];
+        }
+
+        this.size++;
+        return true;
+      }
+
+      _compareKeyAt(key, recordIndex) {
+        const offset = recordIndex * this.stride;
+        for (let i = 0; i < this.N; i++) {
+          const diff = key[i] - this.data[offset + i];
+          if (diff !== 0) return diff;
+        }
+        return 0;
+      }
+
+      findAndIncrement(keyArray, amount = 1) {
+        const index = this.findIndex(keyArray);
+        if (index !== -1) {
+          return this.incrementFrequency(index, amount);
+        }
+        return false;
+      }
+
+      findIndex(keyArray) {
+        let left = 0, right = this.size;
+        while (left < right) {
+          const mid = (left + right) >> 1;
+          const cmp = this._compareKeyAt(keyArray, mid);
+          if (cmp === 0) return mid;
+          else if (cmp < 0) right = mid;
+          else left = mid + 1;
+        }
+        return -1;
+      }
+
+      _compareShortKeyAt(key, recordIndex) {
+        const offset = recordIndex * this.stride;
+        for (let i = 0; i < this.N - 1; i++) {
+          const diff = key[i] - this.data[offset + i];
+          if (diff !== 0) return diff;
+        }
+        return 0;
+      }
+
+      findShortIndex(keyArray) {
+        let left = 0, right = this.size;
+        while (left < right) {
+          const mid = (left + right) >> 1;
+          const cmp = this._compareShortKeyAt(keyArray, mid);
+          if (cmp === 0) return mid;
+          else if (cmp < 0) right = mid;
+          else left = mid + 1;
+        }
+        return -1;
+      }
+
+      findFirstIndex(keyArray, startPoint) {
+        let cmp = this._compareShortKeyAt(keyArray, startPoint);
+        while (cmp === 0) {
+          startPoint--;
+          cmp = this._compareShortKeyAt(keyArray, startPoint);
+        }
+        return ++startPoint;
+      }
+
+      findLastIndex(keyArray, startPoint) {
+        let cmp = this._compareShortKeyAt(keyArray, startPoint);
+        while (cmp === 0) {
+          startPoint++;
+          cmp = this._compareShortKeyAt(keyArray, startPoint);
+        }
+        return --startPoint;
+      }
+
+      collectCandidates(firstIndex, lastIndex) {
+        let candidates = [];
+        for (let i = firstIndex; i <= lastIndex; i++) {
+          let offset = i * this.stride;
+          let candidate = [];
+          for (let j = 0; j < this.N + this.K; j++) {
+            candidate.push(this.data[offset + j]);
+          }
+          candidates.push(candidate);
+        }
+        return candidates;
+      }
+    }
+
+    // ==================== Tokenizer.js ====================
+    class Tokenizer {
+      constructor(n) {
+        if (typeof n === 'undefined') {
+          n = getTokenLength();
+        }
+        this.n = n;
+        this.specialTokens = {
+          PAD: '\u25A1',
+          UNK: '\uFFFD'
+        };
+      }
+
+      tokenize(text) {
+        let dict = getTokenDict();
+        let reverseDict = getReverseTokenDict();
+        let nextTokenId = dict.size;
+        let tokenLength = getTokenLength();
+
+        if (this.n === 1) {
+          for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            if (!dict.has(char)) {
+              dict.set(char, nextTokenId);
+              reverseDict.set(nextTokenId, char);
+              nextTokenId++;
+            }
+          }
+          setTokenDict(dict);
+          setReverseTokenDict(reverseDict);
+          return Array.from(text).map(char => dict.get(char));
+        }
+
+        const processedText = this.preprocessText(text);
+        for (let i = 0; i <= processedText.length - this.n; i += this.n) {
+          const ngram = processedText.substring(i, i + this.n);
+          if (!dict.has(ngram)) {
+            dict.set(ngram, nextTokenId);
+            reverseDict.set(nextTokenId, ngram);
+            nextTokenId++;
+          }
+        }
+        setTokenDict(dict);
+        setReverseTokenDict(reverseDict);
+
+        const tokens = [];
+        for (let i = 0; i <= processedText.length - this.n; i += this.n) {
+          const ngram = processedText.substring(i, i + this.n);
+          tokens.push(dict.get(ngram));
+        }
+        return tokens;
+      }
+
+      preprocessText(text) {
+        if (this.n === 1) return text;
+        let processed = text;
+        const remainder = processed.length % this.n;
+        if (remainder > 0) {
+          const paddingNeeded = this.n - remainder;
+          processed += this.specialTokens.PAD.repeat(paddingNeeded);
+        }
+        return processed;
+      }
+
+      detokenize(tokens) {
+        let reverseDict = getReverseTokenDict();
+        if (this.n === 1) {
+          return tokens.map(id => reverseDict.get(id) || this.specialTokens.UNK).join('');
+        }
+        const ngrams = tokens.map(id => reverseDict.get(id) || this.specialTokens.UNK);
+        let result = ngrams.join('');
+        result = result.replace(new RegExp(this.specialTokens.PAD, 'g'), '');
+        return result;
+      }
+
+      getVocabSize() {
+        let dict = getTokenDict();
+        return dict.size;
+      }
+    }
+
+    async function tokenizeFile(file, stepInsideToken) {
+      const tokenLength = getTokenLength();
+      const tokenizer = new Tokenizer(tokenLength);
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const text = e.target.result;
+          const removedFirstCharsText = text.slice(stepInsideToken);
+          const tokens = tokenizer.tokenize(removedFirstCharsText);
+          resolve(tokens);
+        };
+        reader.onerror = function (err) {
+          reject(err);
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    // ==================== Trainer Utils ====================
+    function safeSetStatusBar(msg, color) {
+      if (typeof window.setStatusBar === 'function') {
+        window.setStatusBar(msg, color);
+      }
+    }
+
+    function safeUpdateTelemetry(data) {
+      if (typeof window.updateTelemetry === 'function') {
+        window.updateTelemetry(data);
+      }
+    }
+
+    // ==================== MemoryManager.js ====================
+    function initDictionaries() {
+      if (globalData.smallSortedArrays.length > 0 || globalData.bigSortedArrays.length > 0) {
+        return;
+      }
+      const minSequence = getMinTokenLength();
+      const maxSequence = getMaxTokenLength();
+      const smallL = getSmallL();
+      const bigL = getBigL();
+      for (let i = minSequence; i <= maxSequence; i++) {
+        globalData.smallSortedArrays.push(new SortedArray(smallL, i, 2));
+        globalData.bigSortedArrays.push(new SortedArray(bigL, i, 2));
+      }
+    }
+
+    function backwardMergeSortedArrays(smallArray, bigArray) {
+      if (smallArray.N !== bigArray.N || smallArray.K !== bigArray.K) {
+        throw new Error('Cannot merge arrays with different key/value lengths');
+      }
+      if (bigArray.size + smallArray.size > bigArray.L) {
+        const errorMsg = 'RAM capacity exhausted, Training stopped.';
+        safeSetStatusBar(errorMsg, '#b71c1c');
+        setStatus(TrainingStatus.STOPPED);
+        alert(`${errorMsg}\nKey Length: ${bigArray.N}\nTraining cannot continue and will stop.`);
+        throw new Error(`RAM capacity exhausted for key length ${bigArray.N}. Training stopped.`);
+      }
+      let i = bigArray.size - 1;
+      let j = smallArray.size - 1;
+      let k = bigArray.size + smallArray.size - 1;
+      while (i >= 0 && j >= 0) {
+        const keyI = bigArray.getKey(i);
+        const keyJ = smallArray.getKey(j);
+        let comparison = 0;
+        for (let idx = 0; idx < bigArray.N; idx++) {
+          if (keyI[idx] !== keyJ[idx]) {
+            comparison = keyI[idx] - keyJ[idx];
+            break;
+          }
+        }
+        if (comparison >= 0) {
+          const srcBase = i * bigArray.stride;
+          const dstBase = k * bigArray.stride;
+          for (let idx = 0; idx < bigArray.stride; idx++) {
+            bigArray.data[dstBase + idx] = bigArray.data[srcBase + idx];
+          }
+          i--;
+        } else {
+          const srcBase = j * smallArray.stride;
+          const dstBase = k * bigArray.stride;
+          for (let idx = 0; idx < smallArray.stride; idx++) {
+            bigArray.data[dstBase + idx] = smallArray.data[srcBase + idx];
+          }
+          j--;
+        }
+        k--;
+      }
+      while (j >= 0) {
+        const srcBase = j * smallArray.stride;
+        const dstBase = k * bigArray.stride;
+        for (let idx = 0; idx < smallArray.stride; idx++) {
+          bigArray.data[dstBase + idx] = smallArray.data[srcBase + idx];
+        }
+        j--;
+        k--;
+      }
+      bigArray.size += smallArray.size;
+      smallArray.clear();
+    }
+
+    // ==================== TrainingProcessor.js ====================
+    function trainFile(tokens, fileIndex) {
+      return new Promise((resolve, reject) => {
+        const minSequence = getMinTokenLength();
+        const maxSequence = getMaxTokenLength();
+        const totalTokens = tokens.length;
+        if (totalTokens < minSequence) {
+          resolve();
+          return;
+        }
+        let i = 0;
+        const yieldIntervalMs = 50;
+        let lastYieldTime = performance.now();
+
+        function processChunk() {
+          if (window.stopTrainingRequested) {
+            resolve();
+            return;
+          }
+
+          const detokenizer = new Tokenizer();
+
+          let shouldYield = false;
+          while (i <= totalTokens - minSequence && !shouldYield) {
+            if (window.stopTrainingRequested) {
+              resolve();
+              return;
+            }
+
+            for (let seqLen = minSequence; seqLen <= maxSequence && i + seqLen <= totalTokens; seqLen++) {
+              const key = tokens.slice(i, i + seqLen);
+              const text = detokenizer.detokenize(key);
+
+              const arrayIndex = seqLen - minSequence;
+              if (arrayIndex >= 0 && arrayIndex < globalData.smallSortedArrays.length) {
+                const smallArray = globalData.smallSortedArrays[arrayIndex];
+                const bigArray = globalData.bigSortedArrays[arrayIndex];
+
+                if (!smallArray.findAndIncrement(key, 1)) {
+                  if (!smallArray.isFull()) {
+                    const insertSuccess = smallArray.insert(key, [1, 0]);
+                    if (!insertSuccess) {
+                      reject(new Error(`Insertion failed for key length ${seqLen}`));
+                      return;
+                    }
+                  } else {
+                    try {
+                      backwardMergeSortedArrays(smallArray, bigArray);
+                    } catch (mergeError) {
+                      reject(mergeError);
+                      return;
+                    }
+                    const insertSuccess = smallArray.insert(key, [1, 0]);
+                    if (!insertSuccess) {
+                      reject(new Error(`Unexpected insertion failure after merge for key length ${seqLen}`));
+                      return;
+                    }
+                  }
+                }
+              }
+            }
+
+            i++;
+            if (performance.now() - lastYieldTime >= yieldIntervalMs) {
+              shouldYield = true;
+            }
+          }
+
+          if (window.trainingProgress) {
+            window.trainingProgress.tokensProcessed = window.trainingProgress._cumulativeOffset + i;
+            if (window.trainingProgress.totalTokens > 0) {
+              window.trainingProgress.percentage = Math.min(
+                100,
+                Math.round((window.trainingProgress.tokensProcessed / window.trainingProgress.totalTokens) * 100)
+              );
+            }
+          }
+
+          const tempUsed = globalData.smallSortedArrays.length > 0
+            ? Math.max(0, ...globalData.smallSortedArrays.map(arr => arr.size))
+            : 0;
+
+          const bigUsed = globalData.bigSortedArrays.length > 0
+            ? Math.max(0, ...globalData.bigSortedArrays.map(arr => arr.size))
+            : 0;
+
+          safeUpdateTelemetry({
+            tokenCount: window.trainingProgress?.tokensProcessed || 0,
+            uniqueTokens: getTokenDict().size,
+            trainingProgress: window.trainingProgress?.percentage || 0,
+            tempMemoryUsed: tempUsed,
+            tempMemoryTotal: getSmallL(),
+            bigMemoryUsed: bigUsed,
+            bigMemoryTotal: getBigL(),
+            ramUsed: bigUsed,
+            ramTotal: getBigL()
+          });
+
+          if (i > totalTokens - minSequence) {
+            if (window.trainingProgress) {
+              window.trainingProgress._cumulativeOffset += totalTokens;
+            }
+            resolve();
+          } else {
+            lastYieldTime = performance.now();
+            setTimeout(processChunk, 0);
+          }
+        }
+
+        processChunk();
+      });
+    }
+
+    // ==================== TrainingFinalizer.js ====================
+    function finalizeTraining() {
+      const minSequence = getMinTokenLength();
+      const maxSequence = getMaxTokenLength();
+
+      for (let seqLen = minSequence; seqLen <= maxSequence; seqLen++) {
+        const arrayIndex = seqLen - minSequence;
+        if (arrayIndex >= 0 &&
+            arrayIndex < globalData.smallSortedArrays.length &&
+            arrayIndex < globalData.bigSortedArrays.length) {
+          const smallArray = globalData.smallSortedArrays[arrayIndex];
+          const bigArray = globalData.bigSortedArrays[arrayIndex];
+          if (smallArray && smallArray.size > 0) {
+            try {
+              backwardMergeSortedArrays(smallArray, bigArray);
+            } catch (error) {
+              throw error;
+            }
+          }
+        }
+      }
+
+      if (window.trainingProgress) {
+        window.trainingProgress.tokensProcessed = window.trainingProgress.totalTokens;
+        window.trainingProgress.percentage = 100;
+      }
+
+      const bigUsed = globalData.bigSortedArrays.length > 0
+        ? Math.max(0, ...globalData.bigSortedArrays.map(arr => arr.size))
+        : 0;
+
+      safeUpdateTelemetry({
+        trainingProgress: 100,
+        tokenCount: window.trainingProgress?.totalTokens || 0,
+        bigMemoryUsed: bigUsed,
+        ramUsed: bigUsed
+      });
+    }
+
+    // ==================== TrainerMain.js ====================
+    async function startTraining(files) {
+      window.trainingProgress = {
+        tokensProcessed: 0,
+        totalTokens: 0,
+        uniqueTokens: 0,
+        percentage: 0,
+        currentFileIndex: -1,
+        totalFiles: files.length,
+        _cumulativeOffset: 0
+      };
+
+      let totalTokens = 0;
+      let uniqueTokens = 0;
+      for (let i = 0; i < files.length; i++) {
+        try {
+          for (let j = 0; j < tokenLength; j++) {
+            const tokens = await tokenizeFile(files[i], j);
+            totalTokens += tokens.length;
+            uniqueTokens = getTokenDict().size;
+          }
+        } catch (err) {
+          console.warn(`Could not count tokens in ${files[i].name}`, err);
+        }
+      }
+      window.trainingProgress.totalTokens = totalTokens;
+      window.trainingProgress.uniqueTokens = uniqueTokens;
+
+      safeUpdateTelemetry({
+        tokenCount: 0,
+        uniqueTokens: getTokenDict().size,
+        trainingProgress: 0,
+        tempMemoryUsed: 0,
+        tempMemoryTotal: getSmallL(),
+        bigMemoryUsed: 0,
+        bigMemoryTotal: getBigL(),
+        ramUsed: 0,
+        ramTotal: getBigL()
+      });
+
+      initDictionaries();
+
+      try {
+        for (let i = 0; i < files.length; i++) {
+          window.trainingProgress.currentFileIndex = i;
+
+          if (window.stopTrainingRequested) {
+            safeSetStatusBar('Training stopped by user.', '#b71c1c');
+            setStatus(TrainingStatus.STOPPED);
+            return;
+          }
+          for (let j = 0; j < tokenLength; j++) {
+            const tokens = await tokenizeFile(files[i], j);
+            globalData.telemetry.uniqueTokens = getTokenDict().size;
+            await trainFile(tokens, i);
+          }
+
+          if (window.stopTrainingRequested) {
+            safeSetStatusBar('Training stopped by user.', '#b71c1c');
+            setStatus(TrainingStatus.STOPPED);
+            return;
+          }
+        }
+
+        finalizeTraining();
+        safeSetStatusBar('✅ Training completed!', '#00796b');
+
+        let topology = "";
+        const minSequence = getMinTokenLength();
+        const maxSequence = getMaxTokenLength();
+        for (let seqLen = minSequence; seqLen <= maxSequence; seqLen++) {
+          const arrayIndex = seqLen - minSequence;
+          const bigArray = globalData.bigSortedArrays[arrayIndex];
+          const size = bigArray.size;
+          topology += ` ${size} `;
+        }
+        console.log(`TrainerMain: Topology layers = ${topology}`);
+      } catch (error) {
+        const statusText = document.querySelector('#status-bar')?.textContent || '';
+        if (!statusText.includes('RAM capacity exhausted')) {
+          safeSetStatusBar('Training stopped due to an error.', '#b71c1c');
+        }
+        setStatus(TrainingStatus.STOPPED);
+        throw error;
+      } finally {
+        window.stopTrainingRequested = false;
+      }
+    }
+
+    // ==================== GeneratorMain.js ====================
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    class GeneratorMain {
+      candidatesAarray = [];
+      biggestArray = new Map();
+      chunksNoHead = [];
+      detokenizer = new Tokenizer();
+      prompt = '';
+      isStopped = false;
+
+      constructor() {
+        console.info('GeneratorMain initialized');
+      }
+
+      tokenizePrompt() {
+        const tokenLength = getTokenLength();
+        const minTokens = getMinTokenLength();
+        const maxTokens = getMaxTokenLength();
+
+        const promptInput = document.querySelector('#generator-content [data-role="prompt-input"]');
+        this.prompt = promptInput ? promptInput.value : '';
+
+        const trimLength = this.prompt.length % tokenLength;
+        const trimmedPrompt = this.prompt.slice(trimLength);
+        const resultPanel = document.querySelector('#generator-content [data-role="result"]');
+        resultPanel.textContent = '';
+
+        const tokenDict = getTokenDict();
+
+        const chunks = [];
+
+        for (let i = 0; i < trimmedPrompt.length; i += tokenLength) {
+          const chunk = trimmedPrompt.slice(i, i + tokenLength);
+          const id = tokenDict.get(chunk);
+          chunks.push(id);
+        }
+
+        const text = this.detokenizer.detokenize(chunks);
+
+        const overflow = chunks.length - maxTokens;
+        if (overflow > 0) {
+          chunks.splice(0, overflow);
+        }
+        return chunks;
+      }
+
+      findCandidate(chunks) {
+        const minTokens = getMinTokenLength();
+        const bigArrayIndex = chunks.length - minTokens;
+        this.chunksNoHead = chunks.splice(1);
+
+        const bigArraysNumber = globalData.bigSortedArrays.length;
+        this.biggestArray = globalData.bigSortedArrays[bigArrayIndex];
+        const candidateIndex = this.biggestArray.findShortIndex(this.chunksNoHead);
+        return candidateIndex;
+      }
+
+      findAllCandidates(candidateIndex) {
+        const firstIndex = this.biggestArray.findFirstIndex(this.chunksNoHead, candidateIndex);
+        const lastIndex = this.biggestArray.findLastIndex(this.chunksNoHead, candidateIndex);
+        this.candidatesArray = this.biggestArray.collectCandidates(firstIndex, lastIndex);
+        const candidatesPanel = document.querySelector('#generator-content [data-role="candidates-panel"]');
+        const lines = [];
+        lines.push('CANDIDATES:\n\n');
+        for (let i = 0; i < this.candidatesArray.length; i++) {
+          const candidate = this.candidatesArray[i];
+          let key = [];
+          let value = [];
+          for (let j = 0; j < candidate.length - 2; j++) {
+            key.push(candidate[j]);
+          }
+          for (let j = candidate.length - 2; j < candidate.length; j++) {
+            value.push(candidate[j]);
+          }
+          const text = this.detokenizer.detokenize(key);
+          lines.push(`${text.padEnd(20)}${value}`);
+        }
+        candidatesPanel.textContent = lines.join('\n');
+      }
+
+      async start() {
+        console.log('🚀 GeneratorMain: Start triggered');
+        this.isStopped = false;
+
+        const minTokens = getMinTokenLength();
+        let chunks = this.tokenizePrompt();
+
+        if (chunks.length < minTokens) {
+          console.warn('The prompt is too short : must be longer then (Min Node Synapses * (Token Length)');
+          return;
+        }
+        const resultPanel = document.querySelector('#generator-content [data-role="result"]');
+
+        resultPanel.textContent = '';
+        resultPanel.textContent += this.prompt;
+
+        await delay(1);
+
+        while (true) {
+          let candidateIndex = this.findCandidate(chunks);
+          while (candidateIndex < 0) {
+            chunks = chunks.slice(1);
+            if (chunks.length < minTokens) {
+              console.error("generatorMain - no candidate... quitting ");
+              resultPanel.textContent += "\n[No candidates found. Stopped.]";
+              return;
+            }
+            candidateIndex = this.findCandidate(chunks);
+          }
+
+          const firstIndex = this.biggestArray.findFirstIndex(this.chunksNoHead, candidateIndex);
+          const lastIndex = this.biggestArray.findLastIndex(this.chunksNoHead, candidateIndex);
+          let candidatesNumber = lastIndex - firstIndex + 1;
+
+          while (candidatesNumber < 1) {
+            chunks = chunks.slice(1);
+            if (chunks.length < minTokens) {
+              console.error("generatorMain - too few candidates... quitting ");
+              resultPanel.textContent += "\n[Not enough candidates. Stopped.]";
+              return;
+            }
+            candidateIndex = this.findCandidate(chunks);
+            const newLastIndex = this.biggestArray.findLastIndex(this.chunksNoHead, candidateIndex);
+            candidatesNumber = newLastIndex - firstIndex + 1;
+          }
+          if (candidateIndex > -1) {
+            this.findAllCandidates(candidateIndex);
+
+            if (this.candidatesArray.length === 0) {
+              console.error("No candidates found in array.");
+              break;
+            }
+
+            const randomCandidate = this.candidatesArray[Math.floor(Math.random() * this.candidatesArray.length)];
+            const nextTokenIndex = randomCandidate.length - 3;
+            let nextPrompt = [];
+            for (let j = 0; j < randomCandidate.length - 2; j++) {
+              nextPrompt.push(randomCandidate[j]);
+              chunks[j] = randomCandidate[j];
+            }
+
+            if (nextTokenIndex >= 0) {
+              const nextToken = [randomCandidate[nextTokenIndex]];
+              const nextTokenText = this.detokenizer.detokenize(nextToken);
+
+              resultPanel.textContent += nextTokenText;
+
+              await delay(10);
+            }
+
+            if (resultPanel.textContent.length > 10000) {
+              resultPanel.textContent += "\n[Max length reached. Stopped.]";
+              break;
+            }
+            if (this.isStopped) break;
+          }
+        }
+      }
+
+      stop() {
+        console.log('🛑 GeneratorMain: Stop triggered');
+        this.isStopped = true;
+      }
+    }
+
+    // ==================== Generator.js ====================
+    function createGeneratorLayout() {
+      const layout = document.createElement('div');
+      layout.className = 'gen-layout';
+      layout.style.display = 'flex';
+      layout.style.gap = '20px';
+      layout.style.width = '100%';
+      layout.style.height = '600px';
+      layout.style.overflow = 'hidden';
+
+      const leftPanel = document.createElement('div');
+      leftPanel.className = 'gen-panel-left';
+      leftPanel.style.display = 'flex';
+      leftPanel.style.flexDirection = 'column';
+      leftPanel.style.flex = '2';
+      leftPanel.style.height = '100%';
+      leftPanel.style.gap = '12px';
+
+      const contextRow = createPanel('Context');
+      contextRow.style.flex = '1';
+      contextRow.style.fontSize = '14px';
+      contextRow.style.overflow = 'auto';
+      contextRow.style.padding = '12px';
+      contextRow.style.color = 'var(--color-text-light)';
+      contextRow.textContent = 'Context will appear here...';
+
+      const promptRow = document.createElement('div');
+      promptRow.className = 'gen-prompt-row';
+      promptRow.style.flex = '1';
+      promptRow.style.display = 'flex';
+      promptRow.style.alignItems = 'center';
+      promptRow.style.gap = '10px';
+      promptRow.style.padding = '0 0 0 4px';
+      promptRow.style.fontFamily = 'var(--font-main)';
+
+      const promptLabel = document.createElement('label');
+      promptLabel.textContent = 'Prompt:';
+      promptLabel.style.fontSize = '14px';
+      promptLabel.style.color = 'var(--color-text)';
+      promptLabel.style.minWidth = '50px';
+
+      const promptInput = document.createElement('input');
+      promptInput.dataset.role = 'prompt-input';
+      promptInput.type = 'text';
+      promptInput.placeholder = 'Enter generation prompt...';
+      promptInput.style.flex = '1';
+      promptInput.style.padding = '8px 10px';
+      promptInput.style.border = '1px solid var(--color-border)';
+      promptInput.style.borderRadius = 'var(--radius-sm)';
+      promptInput.style.fontSize = '14px';
+      promptInput.style.outline = 'none';
+      promptInput.style.fontFamily = 'var(--font-main)';
+
+      const startStopBtn = document.createElement('button');
+      startStopBtn.type = 'button';
+      startStopBtn.className = 'toggle-btn';
+      startStopBtn.style.padding = '6px 12px';
+      startStopBtn.style.fontSize = '14px';
+      startStopBtn.style.fontWeight = '500';
+      startStopBtn.style.borderRadius = 'var(--radius-sm)';
+      startStopBtn.style.border = 'none';
+      startStopBtn.style.cursor = 'pointer';
+      startStopBtn.style.color = 'white';
+      startStopBtn.style.backgroundColor = 'var(--color-primary)';
+      startStopBtn.textContent = 'Start';
+
+      promptRow.appendChild(promptLabel);
+      promptRow.appendChild(promptInput);
+      promptRow.appendChild(startStopBtn);
+
+      const resultRow = createPanel('Result');
+      resultRow.dataset.role = 'result';
+      resultRow.style.fontSize = '14px';
+      resultRow.style.overflow = 'auto';
+      resultRow.style.padding = '12px';
+      resultRow.style.color = 'var(--color-text)';
+      resultRow.style.lineHeight = '1.5';
+      resultRow.textContent = 'Generated output will appear here...';
+      resultRow.style.whiteSpace = 'pre-wrap';
+
+      leftPanel.appendChild(contextRow);
+      leftPanel.appendChild(promptRow);
+      leftPanel.appendChild(resultRow);
+
+      const rightPanel = createPanel('Candidates');
+      rightPanel.dataset.role = 'candidates-panel';
+      rightPanel.className = 'gen-panel-right';
+      rightPanel.style.flex = '1';
+      rightPanel.style.backgroundColor = 'var(--color-light)';
+      rightPanel.style.borderRadius = 'var(--radius)';
+      rightPanel.style.padding = '16px';
+      rightPanel.style.display = 'flex';
+      rightPanel.style.flexDirection = 'column';
+      rightPanel.style.height = '100%';
+      rightPanel.style.overflow = 'auto';
+      rightPanel.style.boxSizing = 'border-box';
+      rightPanel.textContent = 'Candidates will appear here...';
+      rightPanel.style.whiteSpace = 'pre';
+      rightPanel.style.fontFamily = 'monospace';
+
+      layout.appendChild(leftPanel);
+      layout.appendChild(rightPanel);
+
+      return layout;
+    }
+
+    function createPanel(title) {
+      const panel = document.createElement('div');
+      panel.style.backgroundColor = 'white';
+      panel.style.borderRadius = 'var(--radius)';
+      panel.style.boxShadow = '0 1px 4px rgba(0,0,0,0.1)';
+      panel.style.display = 'flex';
+      panel.style.flexDirection = 'column';
+      panel.style.justifyContent = 'flex-start';
+      panel.style.alignItems = 'stretch';
+      panel.style.boxSizing = 'border-box';
+      panel.style.border = '1px solid var(--color-border)';
+
+      if (title) {
+        const header = document.createElement('h3');
+        header.textContent = title;
+        header.style.margin = '0 0 8px 0';
+        header.style.padding = '0';
+        header.style.color = 'var(--color-dark)';
+        header.style.fontSize = '15px';
+        header.style.fontWeight = '500';
+        panel.appendChild(header);
+      }
+
+      return panel;
+    }
+
+    class Generator {
+      constructor() {
+        this.container = document.getElementById('generator-content');
+        this.generatorMain = new GeneratorMain();
+        this.startStopBtn = null;
+        this.promptInput = null;
+      }
+
+      init() {
+        if (!this.container) {
+          console.warn('Generator: #generator-content not found');
+          return;
+        }
+
+        this.container.innerHTML = '';
+
+        const layout = createGeneratorLayout();
+
+        this.startStopBtn = layout.querySelector('.toggle-btn');
+        this.promptInput = layout.querySelector('input[type="text"]');
+
+        this.startStopBtn.addEventListener('click', () => {
+          this.handleStartStop();
+        });
+
+        this.container.appendChild(layout);
+
+        console.info('✅ Generator UI built and wired');
+      }
+
+      handleStartStop() {
+        const isRunning = this.startStopBtn.textContent.trim() === 'Stop';
+
+        if (isRunning) {
+          this.generatorMain.stop();
+          this.startStopBtn.textContent = 'Start';
+          this.startStopBtn.style.backgroundColor = 'var(--color-primary)';
+        } else {
+          console.log('Prompt:', this.promptInput.value);
+          this.generatorMain.start();
+          this.startStopBtn.textContent = 'Stop';
+          this.startStopBtn.style.backgroundColor = 'var(--color-danger)';
+        }
+      }
+    }
+
+    // ==================== UI Panels ====================
+    function setupConsole() {
+      const output = document.getElementById('console-output');
+      if (!output) return;
+
+      const original = {
+        log: console.log.bind(console),
+        warn: console.warn.bind(console),
+        error: console.error.bind(console),
+        info: console.info.bind(console)
+      };
+
+      let consoleEnabled = true;
+
+      function addLogEntry(type, label, args) {
+        const entry = document.createElement('p');
+        entry.className = `console-line ${type}`;
+        entry.innerHTML = `<strong>[${label}]</strong> ${formatArgs(args)}`;
+        output.appendChild(entry);
+        output.scrollTop = output.scrollHeight;
+      }
+
+      function formatArgs(args) {
+        return args.map(arg => {
+          if (typeof arg === 'object') {
+            try {
+              return JSON.stringify(arg);
+            } catch (e) {
+              return '[Circular or invalid JSON]';
+            }
+          }
+          return String(arg);
+        }).join(' ');
+      }
+
+      console.log = function (...args) {
+        original.log(...args);
+        if (consoleEnabled) addLogEntry('log', 'LOG', args);
+      };
+
+      console.warn = function (...args) {
+        original.warn(...args);
+        if (consoleEnabled) addLogEntry('warn', 'WARN', args);
+      };
+
+      console.error = function (...args) {
+        original.error(...args);
+        if (consoleEnabled) addLogEntry('error', 'ERROR', args);
+      };
+
+      console.info = function (...args) {
+        original.info(...args);
+        if (consoleEnabled) addLogEntry('info', 'INFO', args);
+      };
+
+      window.clearDebugConsole = function () {
+        output.innerHTML = '';
+        original.log('Debug console cleared');
+      };
+
+      window.disableDebugConsole = function () {
+        consoleEnabled = false;
+        addLogEntry('info', 'INFO', ['Debug console disabled']);
+      };
+    }
+
+    function createDnDPanel(containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) {
+        console.error(`[DnDPanel] Container #${containerId} not found`);
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="dnd-row">
+          <div class="dnd-zone" data-type="learning">
+            <h3>Learning</h3>
+            <div class="dnd-area">Drag .txt files here</div>
+          </div>
+          <div class="dnd-zone" data-type="unlearning">
+            <h3>Unlearning</h3>
+            <div class="dnd-area">Drag .txt files here</div>
+          </div>
+        </div>
+      `;
+
+      document.querySelectorAll('.dnd-area').forEach(area => {
+        area.addEventListener('dragover', e => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          area.classList.add('active');
+        });
+
+        area.addEventListener('dragleave', () => {
+          area.classList.remove('active');
+        });
+
+        area.addEventListener('drop', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          area.classList.remove('active');
+
+          const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.txt'));
+          if (files.length === 0) {
+            area.textContent = '⚠️ No .txt files';
+            setTimeout(() => {
+              area.textContent = '';
+            }, 1500);
+            return;
+          }
+
+          if (area.parentElement.dataset.type === 'learning') {
+            setDroppedFiles(files);
+            setInputDefined(true);
+
+            if (typeof window.setStatusBar === 'function') {
+              const totalKB = Math.round(files.reduce((sum, f) => sum + f.size, 0) / 1024);
+              window.setStatusBar(`📁 ${files.length} file(s) loaded (${totalKB} KB)`, '#00796b');
+            }
+          }
+
+          area.innerHTML = '';
+          const feedback = document.createElement('div');
+          feedback.innerHTML = `<small>✅ ${files.length} file(s) added</small>`;
+          area.appendChild(feedback);
+
+          setTimeout(() => {
+            if (area.children.length > 0 && area.querySelector('small')) {
+              area.innerHTML = '';
+            }
+          }, 2000);
+        });
+      });
+    }
+
+    function createControlsPanel(containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) {
+        console.error(`[ControlsPanel] Container #${containerId} not found`);
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="controls-grid">
+          <div class="field">
+            <label for="token-size">Token Size</label>
+            <input type="number" id="token-size" value="2" min="1" max="12" data-config="tokenSize" />
+          </div>
+
+          <div class="field">
+            <label for="min-synapses">Min Neuron's Synapses</label>
+            <input type="number" id="min-synapses" value="3" min="1" step="1" data-config="minSynapses" />
+          </div>
+
+          <div class="field">
+            <label for="max-synapses">Max Neuron's Synapses</label>
+            <input type="number" id="max-synapses" value="12" min="1" step="1" data-config="maxSynapses" />
+          </div>
+
+          <div class="field">
+            <label for="temp-memory">Temp Memory (L)</label>
+            <input type="number" id="temp-memory" value="1000" min="100" step="100" data-config="tempMemory" />
+          </div>
+
+          <div class="field">
+            <label for="big-memory">Big Memory (L)</label>
+            <input type="number" id="big-memory" value="1000000" min="10000" step="10000" data-config="bigMemory" />
+          </div>
+
+          <div class="field action-field">
+            <label>&nbsp;</label>
+            <button id="toggle-training" class="btn">Start</button>
+          </div>
+
+          <div class="field status-field">
+            <label>Status</label>
+            <div id="status-bar" class="status-bar" aria-live="polite">Waiting for files...</div>
+          </div>
+        </div>
+      `;
+
+      const tokenSizeInput = container.querySelector('#token-size');
+      const minSynapsesInput = container.querySelector('#min-synapses');
+      const maxSynapsesInput = container.querySelector('#max-synapses');
+      const tempMemoryInput = container.querySelector('#temp-memory');
+      const bigMemoryInput = container.querySelector('#big-memory');
+      const startStopButton = document.getElementById('toggle-training');
+      const statusBar = document.getElementById('status-bar');
+
+      function setStatusBar(msg, color) {
+        statusBar.textContent = msg;
+        statusBar.style.color = color || '#333';
+        statusBar.style.fontWeight = '500';
+      }
+
+      window.setStatusBar = setStatusBar;
+
+      tokenSizeInput.value = 2;
+      minSynapsesInput.value = 3;
+      maxSynapsesInput.value = 12;
+      tempMemoryInput.value = 1000;
+      bigMemoryInput.value = 1_000_000;
+
+      tokenSizeInput.addEventListener('input', e => setTokenLength(e.target.value));
+      minSynapsesInput.addEventListener('input', e => setMinTokenLength(e.target.value));
+      maxSynapsesInput.addEventListener('input', e => setMaxTokenLength(e.target.value));
+      tempMemoryInput.addEventListener('input', e => setSmallL(e.target.value));
+      bigMemoryInput.addEventListener('input', e => setBigL(e.target.value));
+
+      let isTraining = false;
+      let areControlsLocked = false;
+
+      function lockControls() {
+        if (areControlsLocked) return;
+
+        tokenSizeInput.disabled = true;
+        minSynapsesInput.disabled = true;
+        maxSynapsesInput.disabled = true;
+        tempMemoryInput.disabled = true;
+        bigMemoryInput.disabled = true;
+
+        [tokenSizeInput, minSynapsesInput, maxSynapsesInput, tempMemoryInput, bigMemoryInput].forEach(input => {
+          input.style.backgroundColor = '#f5f5f5';
+          input.style.opacity = '0.8';
+        });
+
+        areControlsLocked = true;
+      }
+
+      startStopButton.addEventListener('click', async () => {
+        if (isTraining) {
+          window.stopTrainingRequested = true;
+          startStopButton.disabled = true;
+          startStopButton.textContent = 'Stopping...';
+          setStatusBar('🛑 Stop requested...', '#b71c1c');
+        } else {
+          const files = getDroppedFiles();
+          if (!files || files.length === 0) {
+            setStatusBar('⚠️ No files dropped. Please add files in the DnD panel.', '#ff6d00');
+            return;
+          }
+
+          if (!areControlsLocked) {
+            lockControls();
+          }
+
+          isTraining = true;
+          startStopButton.textContent = 'Stop';
+          setStatus(TrainingStatus.TRAINING);
+          setStatusBar('▶️ Training started...', '#00796b');
+
+          window.stopTrainingRequested = false;
+
+          try {
+            await startTraining(files);
+            if (!window.stopTrainingRequested) {
+              setStatusBar('✅ Training completed!', '#00796b');
+            }
+          } catch (err) {
+            console.error('Training failed:', err);
+            setStatusBar('❌ Error: ' + (err.message || 'Unknown error'), '#b71c1c');
+          } finally {
+            isTraining = false;
+            startStopButton.textContent = 'Start';
+            startStopButton.disabled = false;
+            setStatus(TrainingStatus.STOPPED);
+            window.stopTrainingRequested = false;
+          }
+        }
+      });
+    }
+
+    function createTelemetryPanel(containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) {
+        console.error(`[TelemetryPanel] Container #${containerId} not found`);
+        return;
+      }
+
+      if (!globalData.telemetry) {
+        globalData.telemetry = {
+          tokenCount: 0,
+          uniqueTokens: 0,
+          trainingProgress: 0,
+          tempMemoryUsed: 0,
+          tempMemoryTotal: 1000,
+          bigMemoryUsed: 0,
+          bigMemoryTotal: 1000000,
+          ramUsed: 0,
+          ramTotal: 2144
+        };
+      }
+
+      const init = globalData.telemetry;
+
+      container.innerHTML = `
+        <div class="telemetry-panel">
+          <div class="telemetry-top-row">
+            <div class="telemetry-summary" id="telemetry-summary">
+              Tokens: ${formatNumber(init.tokenCount)} total | Big Entries: ${formatNumber(init.ramUsed)} / ${formatNumber(init.ramTotal)} of Big Dictionary
+            </div>
+          </div>
+
+          <div class="telemetry-progress-row">
+            <div class="progress-item">
+              <label>Training Progress</label>
+              <div class="progress-bar">
+                <div id="progress-fill-training" class="progress-fill" style="width: 0%"></div>
+              </div>
+              <div class="progress-label" id="label-training">0%</div>
+            </div>
+
+            <div class="progress-item">
+              <label>Temp Memory</label>
+              <div class="progress-bar">
+                <div id="progress-fill-temp" class="progress-fill" style="width: 0%"></div>
+              </div>
+              <div class="progress-label" id="label-temp">0 / 1,000</div>
+            </div>
+
+            <div class="progress-item">
+              <label>Big Memory</label>
+              <div class="progress-bar">
+                <div id="progress-fill-big" class="progress-fill" style="width: 0%"></div>
+              </div>
+              <div class="progress-label" id="label-big">0 / 1,000,000</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const summaryEl = document.getElementById('telemetry-summary');
+      const fillTraining = document.getElementById('progress-fill-training');
+      const labelTraining = document.getElementById('label-training');
+      const fillTemp = document.getElementById('progress-fill-temp');
+      const labelTemp = document.getElementById('label-temp');
+      const fillBig = document.getElementById('progress-fill-big');
+      const labelBig = document.getElementById('label-big');
+
+      function formatNumber(num) {
+        return typeof num === 'number' ? num.toLocaleString() : String(num);
+      }
+
+      function calculatePercent(used, total) {
+        return total > 0 ? Math.min(100, (used / total) * 100) : 0;
+      }
+
+      window.updateTelemetry = function(data) {
+        let changed = false;
+
+        if (data.tokenCount !== undefined || data.ramUsed !== undefined || data.ramTotal !== undefined) {
+          const tokenCount = data.tokenCount ?? globalData.telemetry?.tokenCount ?? 0;
+          const uniqueTokens = data.uniqueTokens ?? globalData.telemetry?.uniqueTokens ?? 0;
+          const ramUsed = data.ramUsed ?? globalData.telemetry?.ramUsed ?? 0;
+          const ramTotal = data.ramTotal ?? globalData.telemetry?.ramTotal ?? 2144;
+
+          summaryEl.textContent = `Tokens: ${formatNumber(tokenCount)} total - ${formatNumber(uniqueTokens)} unique | Connected : ${formatNumber(ramUsed)} of ${formatNumber(ramTotal)} Neurons Allocated`;
+          globalData.telemetry = { ...globalData.telemetry, tokenCount, ramUsed, ramTotal };
+          changed = true;
+        }
+
+        if (data.trainingProgress !== undefined) {
+          const progress = Math.min(100, Math.max(0, data.trainingProgress));
+          fillTraining.style.width = `${progress}%`;
+          labelTraining.textContent = `${Math.round(progress)}%`;
+          globalData.telemetry = { ...globalData.telemetry, trainingProgress: progress };
+          changed = true;
+        }
+
+        if (data.tempMemoryUsed !== undefined || data.tempMemoryTotal !== undefined) {
+          const used = data.tempMemoryUsed ?? globalData.telemetry?.tempMemoryUsed ?? 0;
+          const total = data.tempMemoryTotal ?? globalData.telemetry?.tempMemoryTotal ?? getSmallL();
+          const percent = calculatePercent(used, total);
+
+          fillTemp.style.width = `${percent}%`;
+          labelTemp.textContent = `${formatNumber(used)} / ${formatNumber(total)}`;
+          globalData.telemetry = { ...globalData.telemetry, tempMemoryUsed: used, tempMemoryTotal: total };
+          changed = true;
+        }
+
+        if (data.bigMemoryUsed !== undefined || data.bigMemoryTotal !== undefined) {
+          const used = data.bigMemoryUsed ?? globalData.telemetry?.bigMemoryUsed ?? 0;
+          const total = data.bigMemoryTotal ?? globalData.telemetry?.bigMemoryTotal ?? getBigL();
+          const percent = calculatePercent(used, total);
+
+          fillBig.style.width = `${percent}%`;
+          labelBig.textContent = `${formatNumber(used)} / ${formatNumber(total)}`;
+          globalData.telemetry = { ...globalData.telemetry, bigMemoryUsed: used, bigMemoryTotal: total };
+          changed = true;
+        }
+
+        if (changed) {
+          document.dispatchEvent(new CustomEvent('telemetryUpdated', { detail: globalData.telemetry }));
+        }
+      };
+
+      window.updateTelemetry({
+        tokenCount: 0,
+        trainingProgress: 0,
+        tempMemoryUsed: 0,
+        tempMemoryTotal: getSmallL(),
+        bigMemoryUsed: 0,
+        bigMemoryTotal: getBigL(),
+        ramUsed: 0,
+        ramTotal: getBigL()
+      });
+    }
+
+    // ==================== Main Initialization ====================
+    document.addEventListener('DOMContentLoaded', () => {
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        document.body.addEventListener(eventName, e => {
+          e.preventDefault();
+          e.stopPropagation();
+        }, false);
+      });
+
+      document.body.addEventListener('dragover', () => {
+        document.body.classList.add('drag-over-body');
+      });
+      document.body.addEventListener('dragleave', () => {
+        document.body.classList.remove('drag-over-body');
+      });
+      document.body.addEventListener('drop', () => {
+        document.body.classList.remove('drag-over-body');
+      });
+
+      const generator = new Generator();
+      generator.init();
+
+      setupConsole();
+      createDnDPanel('dnd-container');
+      createControlsPanel('controls-container');
+      createTelemetryPanel('telemetry-content');
+
+      console.info("✅ All panels loaded");
+    });
+  </script>
+</body>
+</html>
