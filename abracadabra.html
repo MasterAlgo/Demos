@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abracadabra — Pattern Detection Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070a0f;
+    --panel: #0d1117;
+    --border: #1a2535;
+    --accent: #00ffe0;
+    --accent2: #ff6b35;
+    --accent3: #7b61ff;
+    --node-off: #1a2535;
+    --node-on: #00ffe0;
+    --node-false: #ff3b3b;
+    --text: #8899aa;
+    --text-bright: #ccddef;
+    --wire: #1e3a4a;
+    --wire-on: #00ffe0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-bright);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 20% 20%, rgba(0,255,224,0.03) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(123,97,255,0.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.1rem, 3vw, 1.6rem);
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-align: center;
+    margin-bottom: 4px;
+    text-shadow: 0 0 20px rgba(0,255,224,0.4);
+  }
+
+  .subtitle {
+    font-size: 0.72rem;
+    color: var(--text);
+    letter-spacing: 0.1em;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  .main {
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .controls {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 28px;
+    align-items: flex-end;
+  }
+
+  .ctrl-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .ctrl-group label {
+    font-size: 0.65rem;
+    color: var(--text);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .ctrl-group input[type=range] {
+    -webkit-appearance: none;
+    width: 130px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  .ctrl-group input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .ctrl-group .val {
+    font-size: 0.8rem;
+    color: var(--accent);
+    min-width: 28px;
+    display: inline-block;
+  }
+
+  .ctrl-group input[type=text] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    padding: 4px 10px;
+    width: 180px;
+    letter-spacing: 0.1em;
+    outline: none;
+  }
+
+  .ctrl-group input[type=text]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 8px rgba(0,255,224,0.2);
+  }
+
+  .btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    padding: 8px 18px;
+    border-radius: 4px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .btn:hover { background: rgba(0,255,224,0.1); box-shadow: 0 0 12px rgba(0,255,224,0.2); }
+  .btn.stop { border-color: var(--accent2); color: var(--accent2); }
+  .btn.stop:hover { background: rgba(255,107,53,0.1); }
+  .btn.regen { border-color: var(--accent3); color: var(--accent3); }
+  .btn.regen:hover { background: rgba(123,97,255,0.1); }
+
+  /* Network canvas area */
+  .net-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+  }
+
+  canvas#netCanvas {
+    display: block;
+    width: 100%;
+    border-radius: 4px;
+  }
+
+  /* Stats bar */
+  .stats {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .stat-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 18px;
+    flex: 1;
+    min-width: 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stat-box .label {
+    font-size: 0.6rem;
+    color: var(--text);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .stat-box .value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.4rem;
+    color: var(--accent);
+  }
+
+  .stat-box.fp .value { color: var(--accent2); }
+  .stat-box.fn .value { color: var(--accent3); }
+  .stat-box.tn .value { color: #44cc88; }
+
+  /* Log */
+  .log-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    height: 90px;
+    overflow-y: auto;
+    font-size: 0.68rem;
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  .log-wrap .entry { border-bottom: 1px solid rgba(255,255,255,0.03); padding: 1px 0; }
+  .log-wrap .tp { color: var(--accent); }
+  .log-wrap .fp { color: var(--accent2); }
+  .log-wrap .fn { color: var(--accent3); }
+  .log-wrap .tn { color: #44cc88; }
+
+  /* subpattern pills */
+  .subpat-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .pill {
+    font-size: 0.65rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--text);
+    letter-spacing: 0.08em;
+    transition: all 0.2s;
+  }
+
+  .pill.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,255,224,0.08);
+    box-shadow: 0 0 8px rgba(0,255,224,0.15);
+  }
+
+  .pill.overlap { border-color: var(--accent3); }
+  .pill.nooverlap { border-color: var(--accent2); }
+
+  .section-label {
+    font-size: 0.62rem;
+    color: var(--text);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+</style>
+</head>
+<body>
+
+<h1>ABRACADABRA</h1>
+<p class="subtitle">spatial subpattern detection · AND-node inference · false positive analysis</p>
+
+<div class="main">
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="ctrl-group">
+      <label>Target Sequence</label>
+      <input type="text" id="targetSeq" value="ABRACADABRA" maxlength="16">
+    </div>
+    <div class="ctrl-group">
+      <label>Latent Nodes <span class="val" id="nodeCountVal">3</span></label>
+      <input type="range" id="nodeCount" min="2" max="8" value="3">
+    </div>
+    <div class="ctrl-group">
+      <label>Fanin (legs) <span class="val" id="faninVal">5</span></label>
+      <input type="range" id="fanin" min="2" max="9" value="5">
+    </div>
+    <div class="ctrl-group">
+      <label>Overlap <span class="val" id="overlapVal">on</span></label>
+      <input type="range" id="overlapToggle" min="0" max="1" value="1" step="1">
+    </div>
+    <div class="ctrl-group">
+      <label>Speed <span class="val" id="speedVal">4</span></label>
+      <input type="range" id="speed" min="1" max="10" value="4">
+    </div>
+    <div class="ctrl-group">
+      <label>Series Length <span class="val" id="seriesVal">200</span></label>
+      <input type="range" id="seriesLen" min="20" max="1000" value="200" step="10">
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end;">
+      <button class="btn" id="btnStart">▶ Run</button>
+      <button class="btn stop" id="btnStop">■ Stop</button>
+      <button class="btn regen" id="btnRegen">⟳ Rewire</button>
+    </div>
+  </div>
+
+  <!-- Subpatterns -->
+  <div class="net-wrap" style="padding:14px 20px;">
+    <div class="section-label">Latent Node Subpatterns</div>
+    <div class="subpat-list" id="subpatList"></div>
+  </div>
+
+  <!-- Network visualization -->
+  <div class="net-wrap">
+    <canvas id="netCanvas" height="260"></canvas>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-box">
+      <div class="label">Patterns Tested</div>
+      <div class="value" id="statTotal">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">True Positives</div>
+      <div class="value" id="statTP">0</div>
+    </div>
+    <div class="stat-box fp">
+      <div class="label">False Positives</div>
+      <div class="value" id="statFP">0</div>
+    </div>
+    <div class="stat-box fn">
+      <div class="label">False Negatives</div>
+      <div class="value" id="statFN">0</div>
+    </div>
+    <div class="stat-box tn">
+      <div class="label">True Negatives</div>
+      <div class="value" id="statTN">0</div>
+    </div>
+    <div class="stat-box fp">
+      <div class="label">FP Rate</div>
+      <div class="value" id="statFPRate">0%</div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="log-wrap" id="logWrap"></div>
+
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let target = 'ABRACADABRA';
+let grades = [];        // unique symbols → grade index
+let gradeMap = {};      // symbol → grade
+let inputLen = 0;
+
+let latentNodes = [];   // [{positions:[], grades:[], label:''}]
+let running = false;
+let timer = null;
+let stats = {total:0, tp:0, fp:0, fn:0, tn:0};
+let currentInput = null;
+let currentLatent = [];
+let currentInference = false;
+let isTarget = false;
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+function init() {
+  target = document.getElementById('targetSeq').value.toUpperCase().trim() || 'ABRACADABRA';
+  grades = [...new Set(target.split(''))];
+  gradeMap = {};
+  grades.forEach((g,i) => gradeMap[g] = i);
+  inputLen = target.length;
+  buildLatentNodes();
+  renderSubpats();
+  drawNetwork(null, [], false);
+  resetStats();
+}
+
+function buildLatentNodes() {
+  const n = parseInt(document.getElementById('nodeCount').value);
+  const f = parseInt(document.getElementById('fanin').value);
+  const overlap = parseInt(document.getElementById('overlapToggle').value) === 1;
+  const clampedF = Math.min(f, inputLen);
+
+  latentNodes = [];
+
+  if (overlap) {
+    // Overlapping: sliding/random windows that share positions
+    for (let i = 0; i < n; i++) {
+      // pick a random start, take f consecutive positions (wrapping or clamped)
+      const maxStart = Math.max(0, inputLen - clampedF);
+      const start = Math.floor(Math.random() * (maxStart + 1));
+      const positions = [];
+      for (let j = 0; j < clampedF; j++) {
+        positions.push(Math.min(start + j, inputLen - 1));
+      }
+      // grade = what target has at those positions
+      const g = positions.map(p => gradeMap[target[p]]);
+      latentNodes.push({
+        positions,
+        grades: g,
+        label: positions.map(p => target[p]).join('')
+      });
+    }
+  } else {
+    // Non-overlapping: partition positions as evenly as possible
+    // Each node gets floor(inputLen/n) positions, non-shared
+    const shuffled = Array.from({length: inputLen}, (_,i) => i);
+    // shuffle
+    for (let i = shuffled.length-1; i > 0; i--) {
+      const j = Math.floor(Math.random()*(i+1));
+      [shuffled[i],shuffled[j]] = [shuffled[j],shuffled[i]];
+    }
+    const perNode = Math.max(2, Math.floor(inputLen / n));
+    for (let i = 0; i < n; i++) {
+      const positions = shuffled.slice(i * perNode, i * perNode + Math.min(clampedF, perNode)).sort((a,b)=>a-b);
+      if (positions.length === 0) positions.push(i % inputLen);
+      const g = positions.map(p => gradeMap[target[p]]);
+      latentNodes.push({
+        positions,
+        grades: g,
+        label: positions.map(p => target[p]).join('')
+      });
+    }
+  }
+}
+
+function renderSubpats() {
+  const ol = parseInt(document.getElementById('overlapToggle').value);
+  const list = document.getElementById('subpatList');
+  list.innerHTML = '';
+  latentNodes.forEach(node => {
+    const pill = document.createElement('div');
+    pill.className = 'pill ' + (ol ? 'overlap' : 'nooverlap');
+    pill.id = 'pill_' + node.label;
+    // show positions too
+    pill.textContent = node.label + ' [' + node.positions.join(',') + ']';
+    list.appendChild(pill);
+  });
+}
+
+// ─── Inference ───────────────────────────────────────────────────────────────
+function runInference(input) {
+  // input: array of grade indices, length = inputLen
+  const latentFired = latentNodes.map(node => {
+    return node.positions.every((pos, i) => input[pos] === node.grades[i]);
+  });
+  const inferenceFired = latentFired.every(Boolean);
+  return {latentFired, inferenceFired};
+}
+
+function randomInput() {
+  return Array.from({length: inputLen}, () => Math.floor(Math.random() * grades.length));
+}
+
+function targetInput() {
+  return target.split('').map(c => gradeMap[c]);
+}
+
+// ─── Drawing ─────────────────────────────────────────────────────────────────
+function drawNetwork(input, latentFired, inferenceFired) {
+  const canvas = document.getElementById('netCanvas');
+  const W = canvas.offsetWidth;
+  canvas.width = W;
+  canvas.height = 260;
+  const ctx = canvas.getContext('2d');
+
+  ctx.clearRect(0, 0, W, 260);
+
+  const n = inputLen;
+  const lCount = latentNodes.length;
+
+  // Layout
+  const inputY = 210;
+  const latentY = 120;
+  const inferY = 36;
+
+  const inputXs = Array.from({length: n}, (_, i) => (W * (i + 0.5)) / n);
+  const latentXs = lCount === 1
+    ? [W/2]
+    : Array.from({length: lCount}, (_, i) => W * 0.15 + (W * 0.7 * i) / (lCount - 1));
+  const inferX = W / 2;
+
+  const R_input = Math.min(18, (W / n) * 0.38);
+  const R_latent = 20;
+  const R_infer = 26;
+
+  // Draw wires: input → latent
+  latentNodes.forEach((node, li) => {
+    node.positions.forEach((pos, pi) => {
+      const fired = input && latentFired && latentFired[li] && input[pos] === node.grades[pi];
+      ctx.beginPath();
+      ctx.moveTo(inputXs[pos], inputY - R_input);
+      ctx.lineTo(latentXs[li], latentY + R_latent);
+      ctx.strokeStyle = fired ? 'rgba(0,255,224,0.6)' : 'rgba(30,58,74,0.7)';
+      ctx.lineWidth = fired ? 1.5 : 0.8;
+      ctx.stroke();
+    });
+  });
+
+  // Draw wires: latent → inference
+  latentNodes.forEach((node, li) => {
+    const fired = latentFired && latentFired[li];
+    ctx.beginPath();
+    ctx.moveTo(latentXs[li], latentY - R_latent);
+    ctx.lineTo(inferX, inferY + R_infer);
+    ctx.strokeStyle = fired ? 'rgba(0,255,224,0.6)' : 'rgba(30,58,74,0.7)';
+    ctx.lineWidth = fired ? 1.5 : 0.8;
+    ctx.stroke();
+  });
+
+  // Draw input nodes
+  inputXs.forEach((x, i) => {
+    const gradeIdx = input ? input[i] : -1;
+    const symbol = target[i];
+    const on = input !== null;
+    const matchedByAny = on && latentNodes.some((node, li) =>
+      node.positions.includes(i) && latentFired && latentFired[li]
+    );
+
+    ctx.beginPath();
+    ctx.arc(x, inputY, R_input, 0, Math.PI * 2);
+    ctx.fillStyle = matchedByAny ? 'rgba(0,255,224,0.18)' : (on ? 'rgba(255,255,255,0.04)' : 'rgba(26,37,53,0.8)');
+    ctx.fill();
+    ctx.strokeStyle = matchedByAny ? '#00ffe0' : (on ? '#2a4060' : '#1a2535');
+    ctx.lineWidth = matchedByAny ? 1.5 : 1;
+    ctx.stroke();
+
+    // symbol
+    ctx.fillStyle = matchedByAny ? '#00ffe0' : (on ? '#8899aa' : '#3a5070');
+    ctx.font = `bold ${Math.max(9, R_input * 0.8)}px Share Tech Mono`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (input !== null) {
+      ctx.fillText(grades[input[i]] || '?', x, inputY);
+    } else {
+      ctx.fillText(symbol, x, inputY);
+    }
+
+    // position index
+    ctx.fillStyle = '#3a5070';
+    ctx.font = `8px Share Tech Mono`;
+    ctx.fillText(i, x, inputY + R_input + 8);
+  });
+
+  // Draw latent nodes
+  latentXs.forEach((x, li) => {
+    const fired = latentFired && latentFired[li];
+    ctx.beginPath();
+    ctx.arc(x, latentY, R_latent, 0, Math.PI * 2);
+    ctx.fillStyle = fired ? 'rgba(0,255,224,0.15)' : 'rgba(26,37,53,0.8)';
+    ctx.fill();
+    ctx.strokeStyle = fired ? '#00ffe0' : '#1a2535';
+    ctx.lineWidth = fired ? 2 : 1;
+    ctx.stroke();
+    if (fired) {
+      ctx.beginPath();
+      ctx.arc(x, latentY, R_latent + 5, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(0,255,224,0.2)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = fired ? '#00ffe0' : '#3a5070';
+    ctx.font = `bold 10px Share Tech Mono`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(latentNodes[li].label.slice(0,4), x, latentY);
+  });
+
+  // Draw inference node
+  ctx.beginPath();
+  ctx.arc(inferX, inferY, R_infer, 0, Math.PI * 2);
+  const infColor = inferenceFired
+    ? (isTarget ? '#00ffe0' : '#ff3b3b')
+    : 'rgba(26,37,53,0.8)';
+  ctx.fillStyle = inferenceFired
+    ? (isTarget ? 'rgba(0,255,224,0.15)' : 'rgba(255,59,59,0.15)')
+    : 'rgba(26,37,53,0.8)';
+  ctx.fill();
+  ctx.strokeStyle = infColor;
+  ctx.lineWidth = inferenceFired ? 2.5 : 1;
+  ctx.stroke();
+  if (inferenceFired) {
+    ctx.beginPath();
+    ctx.arc(inferX, inferY, R_infer + 7, 0, Math.PI * 2);
+    ctx.strokeStyle = inferenceFired ? (isTarget ? 'rgba(0,255,224,0.25)' : 'rgba(255,59,59,0.25)') : 'transparent';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = inferenceFired ? infColor : '#3a5070';
+  ctx.font = `bold 9px Orbitron, Share Tech Mono`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('INFER', inferX, inferY);
+
+  // Layer labels
+  ctx.fillStyle = '#2a4060';
+  ctx.font = '9px Share Tech Mono';
+  ctx.textAlign = 'left';
+  ctx.fillText('INPUT LAYER', 6, inputY - R_input - 10);
+  ctx.fillText('LATENT AND-NODES', 6, latentY - R_latent - 10);
+  ctx.fillText('INFERENCE', 6, inferY - R_infer - 8);
+}
+
+// ─── Run loop ─────────────────────────────────────────────────────────────────
+function resetStats() {
+  stats = {total:0, tp:0, fp:0, fn:0, tn:0};
+  updateStats();
+  document.getElementById('logWrap').innerHTML = '';
+}
+
+function updateStats() {
+  document.getElementById('statTotal').textContent = stats.total;
+  document.getElementById('statTP').textContent = stats.tp;
+  document.getElementById('statFP').textContent = stats.fp;
+  document.getElementById('statFN').textContent = stats.fn;
+  document.getElementById('statTN').textContent = stats.tn;
+  const negTotal = stats.fp + stats.tn;
+  const fpRate = negTotal > 0 ? ((stats.fp / negTotal) * 100).toFixed(1) + '%' : '0%';
+  document.getElementById('statFPRate').textContent = fpRate;
+}
+
+function log(msg, cls) {
+  const wrap = document.getElementById('logWrap');
+  const el = document.createElement('div');
+  el.className = 'entry ' + (cls||'');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  wrap.scrollTop = wrap.scrollHeight;
+  // keep log short
+  while (wrap.children.length > 80) wrap.removeChild(wrap.firstChild);
+}
+
+let seriesDone = 0;
+let seriesTotal = 0;
+
+function step() {
+  if (!running) return;
+  if (seriesDone >= seriesTotal) {
+    stopRun();
+    log(`── Series complete. FP: ${stats.fp}/${stats.fp+stats.tn} TN, FN: ${stats.fn}/${stats.fn+stats.tp} TP ──`);
+    return;
+  }
+
+  // Every ~8 steps inject the true target
+  const injectTarget = (seriesDone % 8 === 0);
+  isTarget = injectTarget;
+  currentInput = injectTarget ? targetInput() : randomInput();
+
+  const {latentFired, inferenceFired} = runInference(currentInput);
+  currentLatent = latentFired;
+  currentInference = inferenceFired;
+
+  // Update stats
+  stats.total++;
+  if (injectTarget && inferenceFired) { stats.tp++; }
+  else if (!injectTarget && inferenceFired) { stats.fp++; }
+  else if (injectTarget && !inferenceFired) { stats.fn++; }
+  else { stats.tn++; }
+
+  updateStats();
+
+  // Update pill highlights
+  latentNodes.forEach((node, li) => {
+    const pill = document.querySelector(`#subpatList .pill:nth-child(${li+1})`);
+    if (pill) pill.classList.toggle('active', latentFired[li]);
+  });
+
+  // Log notable events
+  if (injectTarget && inferenceFired) log(`[${seriesDone}] TARGET → FIRED ✓ (TP)`, 'tp');
+  else if (injectTarget && !inferenceFired) log(`[${seriesDone}] TARGET → MISSED (FN)`, 'fn');
+  else if (!injectTarget && inferenceFired) {
+    const inputStr = currentInput.map(g => grades[g]).join('');
+    log(`[${seriesDone}] RANDOM ${inputStr} → FIRED! (FP)`, 'fp');
+  }
+
+  drawNetwork(currentInput, latentFired, inferenceFired);
+  seriesDone++;
+
+  const spd = parseInt(document.getElementById('speed').value);
+  const delay = Math.round(1100 / spd);
+  timer = setTimeout(step, delay);
+}
+
+function startRun() {
+  if (running) return;
+  resetStats();
+  seriesDone = 0;
+  seriesTotal = parseInt(document.getElementById('seriesLen').value);
+  running = true;
+  step();
+}
+
+function stopRun() {
+  running = false;
+  if (timer) clearTimeout(timer);
+}
+
+// ─── Event Listeners ──────────────────────────────────────────────────────────
+document.getElementById('btnStart').addEventListener('click', () => { init(); startRun(); });
+document.getElementById('btnStop').addEventListener('click', stopRun);
+document.getElementById('btnRegen').addEventListener('click', () => { init(); drawNetwork(null,[],false); });
+
+document.getElementById('nodeCount').addEventListener('input', e => {
+  document.getElementById('nodeCountVal').textContent = e.target.value;
+});
+document.getElementById('fanin').addEventListener('input', e => {
+  document.getElementById('faninVal').textContent = e.target.value;
+});
+document.getElementById('overlapToggle').addEventListener('input', e => {
+  document.getElementById('overlapVal').textContent = e.target.value === '1' ? 'on' : 'off';
+});
+document.getElementById('speed').addEventListener('input', e => {
+  document.getElementById('speedVal').textContent = e.target.value;
+});
+document.getElementById('seriesLen').addEventListener('input', e => {
+  document.getElementById('seriesVal').textContent = e.target.value;
+});
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => { init(); });
+window.addEventListener('resize', () => { drawNetwork(currentInput, currentLatent, currentInference); });
+</script>
+</body>
+</html>
