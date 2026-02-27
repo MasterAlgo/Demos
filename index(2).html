@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MasterAlgo — Neural Pattern Demos</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070a0f;
+    --panel: #0d1117;
+    --border: #1a2535;
+    --accent: #00ffe0;
+    --accent2: #ff6b35;
+    --accent3: #a78bfa;
+    --text: #8899aa;
+    --text-bright: #ccddef;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-bright);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 52px 20px 72px;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse at 15% 20%, rgba(0,255,224,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 80%, rgba(167,139,250,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(255,107,53,0.02) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  header { text-align: center; margin-bottom: 56px; }
+
+  .site-tag {
+    font-size: 0.62rem;
+    letter-spacing: 0.28em;
+    color: var(--text);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.4rem, 4vw, 2.5rem);
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-shadow: 0 0 32px rgba(0,255,224,0.3);
+    margin-bottom: 16px;
+  }
+
+  .tagline {
+    font-size: 0.75rem;
+    color: var(--text);
+    letter-spacing: 0.07em;
+    max-width: 580px;
+    line-height: 1.9;
+  }
+
+  .divider {
+    width: 48px; height: 1px;
+    background: var(--border);
+    margin: 0 auto 52px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    width: 100%;
+    max-width: 960px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 26px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--card-accent, var(--accent));
+    opacity: 0.65;
+  }
+
+  .card:hover {
+    border-color: var(--card-accent, var(--accent));
+    transform: translateY(-2px);
+  }
+
+  .card.c1 { --card-accent: var(--accent); }
+  .card.c1:hover { box-shadow: 0 6px 32px rgba(0,255,224,0.07); }
+  .card.c2 { --card-accent: var(--accent2); }
+  .card.c2:hover { box-shadow: 0 6px 32px rgba(255,107,53,0.07); }
+  .card.c3 { --card-accent: var(--accent3); }
+  .card.c3:hover { box-shadow: 0 6px 32px rgba(167,139,250,0.07); }
+
+  .card-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.22em;
+    color: var(--card-accent, var(--accent));
+    opacity: 0.55;
+  }
+
+  .card h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    letter-spacing: 0.1em;
+    line-height: 1.45;
+  }
+
+  .card .desc {
+    font-size: 0.7rem;
+    color: var(--text);
+    line-height: 1.88;
+    flex: 1;
+  }
+
+  .card .desc p + p { margin-top: 9px; }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .tag {
+    font-size: 0.56rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--text);
+    letter-spacing: 0.07em;
+  }
+
+  .tag.hi {
+    border-color: var(--card-accent, var(--accent));
+    color: var(--card-accent, var(--accent));
+    opacity: 0.8;
+  }
+
+  .btn-launch {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    border-radius: 5px;
+    border: 1px solid var(--card-accent, var(--accent));
+    background: transparent;
+    color: var(--card-accent, var(--accent));
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.2s;
+    display: block;
+  }
+
+  .btn-launch:hover {
+    background: rgba(0,0,0,0.2);
+    box-shadow: 0 0 16px rgba(0,0,0,0.3);
+    letter-spacing: 0.18em;
+  }
+
+  footer {
+    margin-top: 68px;
+    font-size: 0.58rem;
+    color: var(--border);
+    letter-spacing: 0.14em;
+    text-align: center;
+    line-height: 2;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="site-tag">MasterAlgo / Demos</div>
+  <h1>NEURAL PATTERN LAB</h1>
+  <p class="tagline">
+    Interactive explorations of biological neural computation —<br>
+    LIF neurons, sparse coding, subpattern detection, predictive inference.
+  </p>
+</header>
+
+<div class="divider"></div>
+
+<div class="grid">
+
+  <div class="card c1">
+    <div class="card-num">DEMO 01</div>
+    <h2>THRESHOLDED LIF<br>NEURON</h2>
+    <div class="desc">
+      <p>A single Leaky Integrate-and-Fire neuron receiving 5 continuous input signals — sinusoidal, spike trains, or random. Watch the soma integrate, threshold-gate, and fire.</p>
+      <p>Regardless of input shape, the LIF neuron operates as a <em>symbolic unit</em>. The foundation of all biological neural computation.</p>
+    </div>
+    <div class="tags">
+      <span class="tag hi">LIF Neuron</span>
+      <span class="tag hi">Thresholding</span>
+      <span class="tag">Spike Trains</span>
+      <span class="tag">Integration</span>
+      <span class="tag">Symbolic Output</span>
+    </div>
+    <a class="btn-launch" href="index_lif.html">▶ Launch</a>
+  </div>
+
+  <div class="card c2">
+    <div class="card-num">DEMO 02</div>
+    <h2>ABRACADABRA<br>SPATIAL</h2>
+    <div class="desc">
+      <p>11-node input layer, 5 discrete grades, ~48K possible states. Parametrized latent AND-nodes detect overlapping subpatterns. One inference node fires only when all match simultaneously.</p>
+      <p>Shows why overlapping subpattern detectors with sufficient fanin produce near-zero false positives — sparse natural manifolds do the heavy lifting.</p>
+    </div>
+    <div class="tags">
+      <span class="tag hi">Sparse Coding</span>
+      <span class="tag hi">AND-Nodes</span>
+      <span class="tag hi">False Positive Rate</span>
+      <span class="tag">Subpattern Detection</span>
+      <span class="tag">Natural Manifolds</span>
+    </div>
+    <a class="btn-launch" href="abracadabra.html">▶ Launch</a>
+  </div>
+
+  <div class="card c3">
+    <div class="card-num">DEMO 03</div>
+    <h2>ABRACADABRA<br>PREDICTIVE CODING</h2>
+    <div class="desc">
+      <p>Symbols arrive one stride at a time through a sliding sensor window. Latent nodes sustain activation after matching their subpattern. Inference fires when K-of-N latent nodes are simultaneously alive.</p>
+      <p>K &lt; N means the network predicts before full evidence arrives — genuine predictive coding. On sparse natural manifolds, partial matches are already decisive. Watch how early it fires.</p>
+    </div>
+    <div class="tags">
+      <span class="tag hi">Predictive Coding</span>
+      <span class="tag hi">K-of-N Inference</span>
+      <span class="tag hi">Sustained Firing</span>
+      <span class="tag">Temporal Patterns</span>
+      <span class="tag">Working Memory</span>
+      <span class="tag">Sparse Manifolds</span>
+    </div>
+    <a class="btn-launch" href="abracadabra_temporal.html">▶ Launch</a>
+  </div>
+
+</div>
+
+<footer>
+  ANN behavior depends on connectome · dynamic thresholds · leakage speed · output signal form<br>
+  natural pattern manifolds are sparse · overlapping detectors are sufficient · prediction precedes completion
+</footer>
+
+</body>
+</html>
